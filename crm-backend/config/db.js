@@ -1,3 +1,4 @@
+```js
 const mongoose = require("mongoose");
 
 const connectDB = async () => {
@@ -6,7 +7,7 @@ const connectDB = async () => {
       throw new Error("MONGODB_URI is missing from environment variables");
     }
 
-    // Reuse an existing Mongoose connection when available.
+    // Reuse existing connection
     if (mongoose.connection.readyState === 1) {
       return;
     }
@@ -17,28 +18,19 @@ const connectDB = async () => {
 
     console.log("✅ MongoDB Atlas connected successfully");
   } catch (error) {
-    console.error(
-      "❌ MongoDB connection error:",
-      error.message
-    );
-
+    console.error("❌ MongoDB connection error:", error.message);
     throw error;
   }
 };
 
-// Register connection events only once.
+// Register listeners only once
 if (!mongoose.connection.__crmListenersRegistered) {
   mongoose.connection.on("error", (err) => {
-    console.error(
-      "❌ MongoDB connection error:",
-      err.message
-    );
+    console.error("❌ MongoDB connection error:", err.message);
   });
 
   mongoose.connection.on("disconnected", () => {
-    console.warn(
-      "⚠️ MongoDB disconnected."
-    );
+    console.warn("⚠️ MongoDB disconnected.");
   });
 
   mongoose.connection.on("reconnected", () => {
@@ -49,3 +41,4 @@ if (!mongoose.connection.__crmListenersRegistered) {
 }
 
 module.exports = connectDB;
+```
