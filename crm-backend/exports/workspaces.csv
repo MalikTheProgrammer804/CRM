@@ -1,0 +1,5 @@
+id,companyName,logoUrl,timeZone,currency,pipelineStages,leadScoring,automatedFollowups,leadSourceTags,createdAt,updatedAt
+4a246602-5e40-4259-9e2b-169e35c82b15,Northstar Studio,,UTC,USD,,,,,2026-08-03 07:18:03.448 +00:00,2026-08-03 07:18:03.448 +00:00
+137f9d44-eaa4-4c11-b1d8-9da996477ff2,ss firm,,UTC,USD,[],[],[],[],2026-08-03 07:19:55.690 +00:00,2026-08-03 07:25:07.586 +00:00
+cede265b-3ac6-4f97-b4f7-7bdc9ece0397,acme group,,UTC,USD,,,,,2026-08-03 07:55:15.991 +00:00,2026-08-03 07:55:15.991 +00:00
+23e0df1c-641d-43f7-824d-04c745bb5b6d,Test Company,,UTC,USD,,,,,2026-08-03 08:25:32.244 +00:00,2026-08-03 08:25:32.244 +00:00

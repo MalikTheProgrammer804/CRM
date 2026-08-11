@@ -1,0 +1,184 @@
+@import "tailwindcss";
+
+/* Root font-size drives every Tailwind rem-based text utility (text-xs,
+   text-sm, text-base, text-lg, etc.) across the ENTIRE site. Bumping this
+   one value scales all text everywhere proportionally larger, without
+   having to touch every component file individually. */
+html {
+  font-size: 17px; /* default browser base is 16px */
+}
+
+:root {
+  color-scheme: light;
+  font-family: Inter, "Segoe UI", Roboto, sans-serif;
+  background-color: #f7f9fc;
+  color: #172b4d;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  background-color: #020617;
+  color: #f8fafc;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: #f7f9fc;
+  line-height: 1.55;
+  letter-spacing: -0.01em;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  letter-spacing: -0.02em;
+}
+
+.dark body,
+.dark #root {
+  background: #020617;
+  color: #f8fafc;
+}
+
+.dark .bg-white,
+.dark .bg-slate-50,
+.dark .bg-slate-100,
+.dark .bg-slate-200 {
+  background-color: #0f172a !important;
+}
+
+.dark .bg-slate-900 {
+  background-color: #020617 !important;
+}
+
+.dark .text-slate-900,
+.dark .text-slate-800,
+.dark .text-slate-700,
+.dark .text-slate-600,
+.dark .text-slate-500,
+.dark .text-slate-400 {
+  color: #f8fafc !important;
+}
+
+.dark .border-slate-200,
+.dark .border-slate-100 {
+  border-color: #334155 !important;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+button,
+input {
+  font: inherit;
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(22, 43, 85, 0.25);
+  border-radius: 999px;
+  transition: background 0.2s ease;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(22, 43, 85, 0.45);
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+/* Global, gentle motion defaults. Anything using these utility/base
+   selectors gets a consistent, non-jarring transition without every
+   component needing its own `transition` declaration. */
+a, button, input, select, textarea {
+  transition: background-color 0.2s ease, border-color 0.2s ease,
+    color 0.2s ease, box-shadow 0.2s ease, transform 0.15s ease,
+    opacity 0.2s ease;
+}
+
+button:active {
+  transform: scale(0.98);
+}
+
+/* Respect users who've asked for reduced motion at the OS level */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Soft fade+rise keyframes reused by a few components that don't need
+   the framer-motion runtime (kept lightweight/CSS-only on purpose). */
+@keyframes crm-fade-up {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.crm-animate-in {
+  animation: crm-fade-up 0.45s ease both;
+}
+
+.crm-page-title { color: #172b4d; font-weight: 800; letter-spacing: -0.025em; font-size: 1.5rem; }
+.crm-card { border: 1px solid #d9e0e7; border-radius: 9px; background: #fff; box-shadow: 0 1px 2px rgba(16, 24, 40, .03); }
+.crm-input { border: 1px solid #d5dde6; background: #f1f4f8; border-radius: 5px; color: #172b4d; }
+.crm-input:focus { border-color: #0e8e86; outline: 2px solid rgba(14, 142, 134, .12); }
+.crm-primary { background: #e86f00; color: #fff; border-radius: 6px; }
+.crm-primary:hover { background: #c85e00; }
+
+.dark .crm-page-title { color: #f8fafc; }
+.dark .crm-card { border-color: #334155; background: #0f172a; box-shadow: none; }
+.dark .crm-input { border-color: #334155; background: #111827; color: #f8fafc; }
+.dark .crm-input:focus { border-color: #2dd4bf; outline: 2px solid rgba(45, 212, 191, .15); }
+.dark .crm-alert { border-color: #334155; background: #111827; color: #e2e8f0; }
+
+
+/* ==========================================
+   Mobile-Friendly Responsive Base & Utilities
+   ================================---------- */
+
+/* Ensure proper box-sizing and prevent horizontal overflow globally */
+html, body {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  overflow-x: hidden;
+  -webkit-text-size-adjust: 100%;
+}
+
+*, *:before, *:after {
+  box-sizing: inherit;
+}
+
+/* Responsive Images & Media */
+img, video, canvas, svg {
+  max-width: 100%;
+  height: auto;
+}
+
+/* Improve Touch Targets for Mobile Devices (Min 44x44px standard) */
+@media (max-width: 768px) {
+  html {
+    font-size: 16px; /* keep mobile text from getting too large */
+  }
+
+  button, 
+  input, 
+  select, 
+  textarea, 
+  a {
+    min-height: 44px;
+    min-width: 44px;
+  }
+}
