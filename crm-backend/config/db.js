@@ -3,37 +3,19 @@ const mongoose = require("mongoose");
 const connectDB = async () => {
   try {
     if (!process.env.MONGODB_URI) {
-      throw new Error(
-        "MONGODB_URI is missing from .env"
-      );
+      throw new Error("MONGODB_URI is missing from environment variables");
     }
 
-    // serverSelectionTimeoutMS keeps a bad/unreachable connection string
-    // from hanging the app for the default 30s - it fails fast instead.
-    await mongoose.connect(
-      process.env.MONGODB_URI,
-      {
-        serverSelectionTimeoutMS: 10000,
-      }
-    );
+    // Reuse an existing Mongoose connection when available.
+    if (mongoose.connection.readyState === 1) {
+      return;
+    }
 
-    console.log(
-      "✅ MongoDB Atlas connected successfully"
-    );
-
-    // Runtime connection health - these fire after the initial connect
-    // above, e.g. if Atlas restarts or the network blips mid-session.
-    mongoose.connection.on("error", (err) => {
-      console.error("❌ MongoDB connection error:", err.message);
+    await mongoose.connect(process.env.MONGODB_URI, {
+      serverSelectionTimeoutMS: 10000,
     });
 
-    mongoose.connection.on("disconnected", () => {
-      console.warn("⚠️ MongoDB disconnected - Mongoose will attempt to reconnect automatically.");
-    });
-
-    mongoose.connection.on("reconnected", () => {
-      console.log("✅ MongoDB reconnected.");
-    });
+    console.log("✅ MongoDB Atlas connected successfully");
   } catch (error) {
     console.error(
       "❌ MongoDB connection error:",
@@ -43,5 +25,27 @@ const connectDB = async () => {
     throw error;
   }
 };
+
+// Register connection events only once.
+if (!mongoose.connection.__crmListenersRegistered) {
+  mongoose.connection.on("error", (err) => {
+    console.error(
+      "❌ MongoDB connection error:",
+      err.message
+    );
+  });
+
+  mongoose.connection.on("disconnected", () => {
+    console.warn(
+      "⚠️ MongoDB disconnected."
+    );
+  });
+
+  mongoose.connection.on("reconnected", () => {
+    console.log("✅ MongoDB reconnected.");
+  });
+
+  mongoose.connection.__crmListenersRegistered = true;
+}
 
 module.exports = connectDB;
