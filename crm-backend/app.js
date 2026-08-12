@@ -15,7 +15,6 @@ const allowedOrigins = [
   process.env.CORS_ORIGIN,
   "https://crm-3gvs.vercel.app",
 ].filter(Boolean);
-
 app.use(
   cors({
     origin: (origin, callback) => {
