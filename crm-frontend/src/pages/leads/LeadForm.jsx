@@ -27,6 +27,7 @@ export default function LeadForm() {
   const navigate = useNavigate();
   const { id } = useParams();
   const isEditMode = Boolean(id);
+  const { addNotification } = useNotifications();
 
   const [form, setForm] = useState({
     businessName: "",
@@ -81,24 +82,42 @@ export default function LeadForm() {
     return Object.keys(next).length === 0;
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!validate()) return;
+ const handleSubmit = async (e) => {
+  e.preventDefault();
 
-    setSaving(true);
-    try {
-      if (isEditMode) {
-        await leadService.updateLead(id, form);
-      } else {
-        await leadService.createLead(form);
-      }
-      navigate("/leads");
-    } catch (err) {
-      console.error("Failed to save lead:", err.message);
-    } finally {
-      setSaving(false);
+  if (!validate()) return;
+
+  setSaving(true);
+
+  try {
+    if (isEditMode) {
+      await leadService.updateLead(id, form);
+
+      addNotification(
+        `Lead "${form.businessName}" was updated successfully.`,
+        "success"
+      );
+    } else {
+      await leadService.createLead(form);
+
+      addNotification(
+        `New lead "${form.businessName}" was added successfully.`,
+        "success"
+      );
     }
-  };
+
+    navigate("/leads");
+  } catch (err) {
+    console.error("Failed to save lead:", err.message);
+
+    addNotification(
+      "Unable to save the lead. Please try again.",
+      "error"
+    );
+  } finally {
+    setSaving(false);
+  }
+};
 
   if (loading) {
     return <p className="text-sm text-slate-500">Loading lead...</p>;
