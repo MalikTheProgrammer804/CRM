@@ -82,7 +82,7 @@ export default function LeadForm() {
     return Object.keys(next).length === 0;
   };
 
- const handleSubmit = async (e) => {
+const handleSubmit = async (e) => {
   e.preventDefault();
 
   if (!validate()) return;
@@ -93,27 +93,50 @@ export default function LeadForm() {
     if (isEditMode) {
       await leadService.updateLead(id, form);
 
-      addNotification(
-        `Lead "${form.businessName}" was updated successfully.`,
-        "success"
-      );
+      // Notification ko API save se separate rakho
+      try {
+        addNotification(
+          `Lead "${form.businessName}" was updated successfully.`
+        );
+      } catch (notificationError) {
+        console.error(
+          "Notification error:",
+          notificationError
+        );
+      }
     } else {
       await leadService.createLead(form);
 
-      addNotification(
-        `New lead "${form.businessName}" was added successfully.`,
-        "success"
-      );
+      // Notification ko API save se separate rakho
+      try {
+        addNotification(
+          `New lead "${form.businessName}" was added successfully.`
+        );
+      } catch (notificationError) {
+        console.error(
+          "Notification error:",
+          notificationError
+        );
+      }
     }
 
+    // Lead successfully save hone ke baad hi redirect
     navigate("/leads");
-  } catch (err) {
-    console.error("Failed to save lead:", err.message);
 
-    addNotification(
-      "Unable to save the lead. Please try again.",
-      "error"
+  } catch (err) {
+    console.error("Failed to save lead:", err);
+
+    // Actual backend error console mein show hoga
+    console.error(
+      "Backend response:",
+      err?.response?.data
     );
+
+    alert(
+      err?.response?.data?.message ||
+      "Unable to save the lead. Please try again."
+    );
+
   } finally {
     setSaving(false);
   }
