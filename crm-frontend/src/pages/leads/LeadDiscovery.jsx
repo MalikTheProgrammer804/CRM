@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Search, MapPin, Star, Ruler, X } from "lucide-react";
 import DiscoveryResultCard from "../../components/leads/DiscoveryResultCard";
-import NotificationBell from "../../components/layout/NotificationBell";
 import { useNotifications } from "../../context/NotificationContext";
 import leadDiscoveryService from "../../services/leadDiscoveryService";
 import leadService from "../../services/leadService";
@@ -164,7 +163,7 @@ export default function LeadDiscovery() {
     <div>
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-extrabold text-slate-900">Google Maps Lead Finder</h1>
-        <NotificationBell />
+     
       </div>
 
       {/* Search bars */}
