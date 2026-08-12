@@ -1,7 +1,7 @@
 /* ==========================================
    Lead Discovery Responsive Improvements
    ========================================== */
-
+@import "tailwindcss";
 @media (max-width: 768px) {
   .lead-discovery-page {
     width: 100%;
