@@ -7,7 +7,7 @@
   "scripts": {
     "dev": "nodemon server.js",
     "start": "node server",
-    "vercel-start" : "node server.js"
+    "vercel-start": "node server.js"
   },
   "dependencies": {
     "axios": "^1.7.4",
