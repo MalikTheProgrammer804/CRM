@@ -1,29 +1,110 @@
-import { createContext, useContext, useState, useCallback } from "react";
+import {
+  createContext,
+  useContext,
+  useState,
+  useCallback,
+} from "react";
 
 const NotificationContext = createContext(null);
 
-export function NotificationProvider({ children }) {
-  const [notifications, setNotifications] = useState([]);
+const STORAGE_KEY = "crm_notifications";
 
-  const addNotification = useCallback((message) => {
+export function NotificationProvider({ children }) {
+  const [notifications, setNotifications] = useState(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+
+      if (!saved) return [];
+
+      const parsed = JSON.parse(saved);
+
+      return Array.isArray(parsed) ? parsed : [];
+    } catch (error) {
+      console.error("Failed to load notifications:", error);
+      return [];
+    }
+  });
+
+  const saveNotifications = (nextNotifications) => {
+    try {
+      localStorage.setItem(
+        STORAGE_KEY,
+        JSON.stringify(nextNotifications)
+      );
+    } catch (error) {
+      console.error("Failed to save notifications:", error);
+    }
+  };
+
+  const addNotification = useCallback((message, type = "info") => {
     const notification = {
-      id: Date.now(),
+      id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
       message,
-      time: new Date(),
+      type,
+      time: new Date().toISOString(),
       read: false,
     };
-    setNotifications((prev) => [notification, ...prev].slice(0, 20));
+
+    setNotifications((prev) => {
+      const next = [notification, ...prev].slice(0, 20);
+
+      saveNotifications(next);
+
+      return next;
+    });
   }, []);
 
   const markAllRead = useCallback(() => {
-    setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+    setNotifications((prev) => {
+      const next = prev.map((notification) => ({
+        ...notification,
+        read: true,
+      }));
+
+      saveNotifications(next);
+
+      return next;
+    });
   }, []);
 
-  const unreadCount = notifications.filter((n) => !n.read).length;
+  const markAsRead = useCallback((id) => {
+    setNotifications((prev) => {
+      const next = prev.map((notification) =>
+        notification.id === id
+          ? { ...notification, read: true }
+          : notification
+      );
+
+      saveNotifications(next);
+
+      return next;
+    });
+  }, []);
+
+  const clearNotifications = useCallback(() => {
+    setNotifications([]);
+
+    try {
+      localStorage.removeItem(STORAGE_KEY);
+    } catch (error) {
+      console.error("Failed to clear notifications:", error);
+    }
+  }, []);
+
+  const unreadCount = notifications.filter(
+    (notification) => !notification.read
+  ).length;
 
   return (
     <NotificationContext.Provider
-      value={{ notifications, addNotification, markAllRead, unreadCount }}
+      value={{
+        notifications,
+        addNotification,
+        markAllRead,
+        markAsRead,
+        clearNotifications,
+        unreadCount,
+      }}
     >
       {children}
     </NotificationContext.Provider>
@@ -31,9 +112,13 @@ export function NotificationProvider({ children }) {
 }
 
 export function useNotifications() {
-  const ctx = useContext(NotificationContext);
-  if (!ctx) {
-    throw new Error("useNotifications must be used inside NotificationProvider");
+  const context = useContext(NotificationContext);
+
+  if (!context) {
+    throw new Error(
+      "useNotifications must be used inside NotificationProvider"
+    );
   }
-  return ctx;
+
+  return context;
 }
