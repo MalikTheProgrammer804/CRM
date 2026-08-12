@@ -6,7 +6,7 @@
   "type": "commonjs",
   "scripts": {
     "dev": "nodemon server.js",
-    "start": "node server",
+    "start": "node server.js",
     "vercel-start": "node server.js"
   },
   "dependencies": {
