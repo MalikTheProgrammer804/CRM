@@ -1,96 +1,375 @@
-/* ==========================================
-   Lead Discovery Responsive Improvements
-   ========================================== */
 @import "tailwindcss";
-@media (max-width: 768px) {
-  .lead-discovery-page {
-    width: 100%;
-    max-width: 100%;
-    overflow-x: hidden;
+
+/* =========================================================
+   GLOBAL BASE
+   ========================================================= */
+
+html {
+  font-size: 17px;
+  scroll-behavior: smooth;
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+  -webkit-text-size-adjust: 100%;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: inherit;
+}
+
+:root {
+  color-scheme: light;
+  font-family: Inter, "Segoe UI", Roboto, sans-serif;
+  background-color: #f7f9fc;
+  color: #172b4d;
+
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  min-height: 100vh;
+  width: 100%;
+  max-width: 100%;
+  background: #f7f9fc;
+  color: #172b4d;
+  line-height: 1.55;
+  letter-spacing: -0.01em;
+  overflow-x: hidden;
+}
+
+#root {
+  min-height: 100vh;
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  letter-spacing: -0.02em;
+}
+
+img,
+video,
+canvas,
+svg {
+  max-width: 100%;
+  height: auto;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: not-allowed;
+}
+
+
+/* =========================================================
+   SCROLLBAR
+   ========================================================= */
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(22, 43, 85, 0.25);
+  border-radius: 999px;
+  transition: background 0.2s ease;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(22, 43, 85, 0.45);
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+
+/* =========================================================
+   GLOBAL TRANSITIONS
+   ========================================================= */
+
+a,
+button,
+input,
+select,
+textarea {
+  transition:
+    background-color 0.2s ease,
+    border-color 0.2s ease,
+    color 0.2s ease,
+    box-shadow 0.2s ease,
+    transform 0.15s ease,
+    opacity 0.2s ease;
+}
+
+button:active {
+  transform: scale(0.98);
+}
+
+
+/* =========================================================
+   ANIMATIONS
+   ========================================================= */
+
+@keyframes crm-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
   }
 
-  .lead-discovery-page .lead-discovery-title {
-    font-size: 1.75rem;
-    line-height: 1.2;
-    margin-bottom: 1rem;
-  }
-
-  .lead-discovery-page .search-section {
-    display: flex;
-    flex-direction: column;
-    width: 100%;
-    gap: 10px;
-  }
-
-  .lead-discovery-page .search-section > * {
-    width: 100%;
-    max-width: 100%;
-  }
-
-  .lead-discovery-page .category-section {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    width: 100%;
-  }
-
-  .lead-discovery-page .category-section button {
-    flex: 0 0 auto;
-    min-width: auto;
-    min-height: 42px;
-    padding: 8px 14px;
-  }
-
-  .lead-discovery-page .quick-filters {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 8px;
-    width: 100%;
-    padding: 14px;
-  }
-
-  .lead-discovery-page .quick-filters > * {
-    max-width: 100%;
-  }
-
-  .lead-discovery-page .quick-filter-button {
-    flex: 1 1 auto;
-    min-width: 100px;
-  }
-
-  .lead-discovery-page .clear-filters {
-    width: 100%;
-    text-align: right;
-    margin-top: 4px;
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }
 
+.crm-animate-in {
+  animation: crm-fade-up 0.45s ease both;
+}
+
+
+/* =========================================================
+   CRM CUSTOM STYLES
+   ========================================================= */
+
+.crm-page-title {
+  color: #172b4d;
+  font-weight: 800;
+  letter-spacing: -0.025em;
+  font-size: 1.5rem;
+}
+
+.crm-card {
+  border: 1px solid #d9e0e7;
+  border-radius: 9px;
+  background: #ffffff;
+  box-shadow: 0 1px 2px rgba(16, 24, 40, 0.03);
+}
+
+.crm-input {
+  border: 1px solid #d5dde6;
+  background: #f1f4f8;
+  border-radius: 5px;
+  color: #172b4d;
+}
+
+.crm-input:focus {
+  border-color: #0e8e86;
+  outline: 2px solid rgba(14, 142, 134, 0.12);
+}
+
+.crm-primary {
+  background: #e86f00;
+  color: #ffffff;
+  border-radius: 6px;
+}
+
+.crm-primary:hover {
+  background: #c85e00;
+}
+
+.crm-alert {
+  border: 1px solid #fecaca;
+  background: #fef2f2;
+  color: #991b1b;
+}
+
+
+/* =========================================================
+   DARK MODE
+   ========================================================= */
+
+.dark body,
+.dark #root {
+  background: #020617;
+  color: #f8fafc;
+}
+
+.dark .bg-white,
+.dark .bg-slate-50,
+.dark .bg-slate-100,
+.dark .bg-slate-200 {
+  background-color: #0f172a !important;
+}
+
+.dark .bg-slate-900 {
+  background-color: #020617 !important;
+}
+
+.dark .text-slate-900,
+.dark .text-slate-800,
+.dark .text-slate-700,
+.dark .text-slate-600,
+.dark .text-slate-500,
+.dark .text-slate-400 {
+  color: #f8fafc !important;
+}
+
+.dark .border-slate-200,
+.dark .border-slate-100 {
+  border-color: #334155 !important;
+}
+
+.dark .crm-page-title {
+  color: #f8fafc;
+}
+
+.dark .crm-card {
+  border-color: #334155;
+  background: #0f172a;
+  box-shadow: none;
+}
+
+.dark .crm-input {
+  border-color: #334155;
+  background: #111827;
+  color: #f8fafc;
+}
+
+.dark .crm-input:focus {
+  border-color: #2dd4bf;
+  outline: 2px solid rgba(45, 212, 191, 0.15);
+}
+
+.dark .crm-alert {
+  border-color: #334155;
+  background: #111827;
+  color: #e2e8f0;
+}
+
+
+/* =========================================================
+   GENERAL RESPONSIVE BASE
+   ========================================================= */
+
+html,
+body,
+#root {
+  width: 100%;
+  max-width: 100%;
+}
+
+body {
+  overflow-x: hidden;
+}
+
+
+/* =========================================================
+   TABLET
+   ========================================================= */
+
+@media (max-width: 1024px) {
+  html {
+    font-size: 16px;
+  }
+}
+
+
+/* =========================================================
+   MOBILE
+   ========================================================= */
+
+@media (max-width: 768px) {
+  html {
+    font-size: 16px;
+  }
+
+  body {
+    line-height: 1.5;
+  }
+
+  button,
+  input,
+  select,
+  textarea,
+  a {
+    min-height: 44px;
+  }
+
+  .crm-page-title {
+    font-size: 1.35rem;
+  }
+
+  /*
+    Prevent large fixed-width content from creating
+    horizontal scrolling on phones.
+  */
+  table {
+    max-width: 100%;
+  }
+
+  pre {
+    max-width: 100%;
+    overflow-x: auto;
+  }
+}
+
+
+/* =========================================================
+   SMALL MOBILE
+   ========================================================= */
+
 @media (max-width: 480px) {
-  .lead-discovery-page {
-    padding-left: 16px;
-    padding-right: 16px;
+  html {
+    font-size: 16px;
   }
 
-  .lead-discovery-page .lead-discovery-title {
-    font-size: 1.65rem;
+  .crm-page-title {
+    font-size: 1.25rem;
+  }
+}
+
+
+/* =========================================================
+   VERY SMALL DEVICES
+   ========================================================= */
+
+@media (max-width: 360px) {
+  html {
+    font-size: 15px;
   }
 
-  .lead-discovery-page .category-section {
-    gap: 7px;
+  .crm-page-title {
+    font-size: 1.15rem;
   }
+}
 
-  .lead-discovery-page .category-section button {
-    font-size: 0.9rem;
-    padding: 8px 12px;
-  }
 
-  .lead-discovery-page .quick-filters {
-    padding: 12px;
-  }
+/* =========================================================
+   REDUCED MOTION
+   ========================================================= */
 
-  .lead-discovery-page .quick-filter-button {
-    flex: 1 1 calc(50% - 8px);
-    min-width: 0;
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
   }
 }
