@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { useNotifications } from "../../context/NotificationContext";
 import { Info, Share2, IdCard, FileText, MapPin, Plus } from "lucide-react";
 import leadService from "../../services/leadService";
 
