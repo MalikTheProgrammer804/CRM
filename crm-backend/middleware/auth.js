@@ -1,13 +1,16 @@
 const { verifyToken } = require("../utils/token");
-const { User } = require("../models");
+const {
+  User,
+  WorkspaceMember,
+} = require("../models");
+
 
 /**
- * Authentication Middleware
- * Verifies Bearer JWT and attaches authenticated user
- * and workspace context to req.
+ * AUTHENTICATION
  */
 async function protect(req, res, next) {
-  const authHeader = req.headers.authorization;
+  const authHeader =
+    req.headers.authorization;
 
   if (
     !authHeader ||
@@ -20,14 +23,16 @@ async function protect(req, res, next) {
   }
 
   try {
-    const token = authHeader.split(" ")[1];
+    const token =
+      authHeader.split(" ")[1];
 
-    const decoded = verifyToken(token);
+    const decoded =
+      verifyToken(token);
 
-    // Find user using MongoDB/Mongoose
-    const user = await User.findOne({
-      id: decoded.userId,
-    }).select("-passwordHash");
+    const user =
+      await User.findOne({
+        id: decoded.userId,
+      }).select("-passwordHash");
 
     if (!user) {
       return res.status(401).json({
@@ -36,21 +41,47 @@ async function protect(req, res, next) {
       });
     }
 
-    // Attach authenticated user
     req.user = user;
 
-    // Attach workspace context
-    req.workspaceId =
+    // ------------------------------------------
+    // Workspace from token / user's own workspace
+    // ------------------------------------------
+    let workspaceId =
       decoded.workspaceId ||
-      user.workspaceId;
+      user.workspaceId ||
+      null;
 
-    // Attach role
+
+    // ------------------------------------------
+    // If user doesn't own a workspace,
+    // check WorkspaceMember collection
+    // ------------------------------------------
+    if (!workspaceId) {
+      const membership =
+        await WorkspaceMember.findOne({
+          userId: user.id,
+        }).sort({
+          createdAt: 1,
+        });
+
+      if (membership) {
+        workspaceId =
+          membership.workspaceId;
+      }
+    }
+
+
+    req.workspaceId =
+      workspaceId;
+
     req.role =
       decoded.role ||
       user.role;
 
     next();
+
   } catch (err) {
+
     console.error(
       "Authentication error:",
       err.message
@@ -63,4 +94,34 @@ async function protect(req, res, next) {
   }
 }
 
+
+/**
+ * ADMIN ONLY
+ */
+function requireAdmin(
+  req,
+  res,
+  next
+) {
+  if (!req.user) {
+    return res.status(401).json({
+      message: "Not authorized.",
+    });
+  }
+
+  if (
+    req.user.role !== "admin"
+  ) {
+    return res.status(403).json({
+      message:
+        "Only workspace admin can perform this action.",
+    });
+  }
+
+  next();
+}
+
+
 module.exports = protect;
+module.exports.requireAdmin =
+  requireAdmin;
