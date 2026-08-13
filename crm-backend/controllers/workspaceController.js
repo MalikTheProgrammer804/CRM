@@ -4,7 +4,6 @@ const {
   WorkspaceMember,
 } = require("../models");
 
-
 // ==========================================
 // GET WORKSPACE
 // ==========================================
@@ -25,7 +24,6 @@ exports.get = async (req, res, next) => {
     next(error);
   }
 };
-
 
 // ==========================================
 // UPDATE WORKSPACE
@@ -86,33 +84,60 @@ exports.update = async (req, res, next) => {
   }
 };
 
-
 // ==========================================
 // GET WORKSPACE MEMBERS
 // ==========================================
 exports.members = async (req, res, next) => {
   try {
-    const workspaceId = req.workspaceId;
+    const userId = req.user.id;
 
     // ------------------------------------------
-    // Workspace owner/admin
+    // Find workspaces where current user
+    // is a member
     // ------------------------------------------
-    const owner = await User.findOne({
-      workspaceId,
+    const myMemberships = await WorkspaceMember.find({
+      userId,
+    })
+      .sort({ createdAt: 1 })
+      .lean();
+
+    // ------------------------------------------
+    // If user is not a member of any workspace
+    // ------------------------------------------
+    if (myMemberships.length === 0) {
+      return res.json([]);
+    }
+
+    const workspaceIds = myMemberships.map(
+      (membership) => membership.workspaceId
+    );
+
+    // ------------------------------------------
+    // Get admins / owners
+    // ------------------------------------------
+    const owners = await User.find({
+      workspaceId: {
+        $in: workspaceIds,
+      },
       role: "admin",
     })
       .select("-passwordHash")
       .lean();
 
     // ------------------------------------------
-    // Workspace members
+    // Get all memberships
     // ------------------------------------------
     const memberships = await WorkspaceMember.find({
-      workspaceId,
+      workspaceId: {
+        $in: workspaceIds,
+      },
     })
       .sort({ createdAt: 1 })
       .lean();
 
+    // ------------------------------------------
+    // Get users
+    // ------------------------------------------
     const memberUserIds = memberships.map(
       (membership) => membership.userId
     );
@@ -120,7 +145,9 @@ exports.members = async (req, res, next) => {
     const memberUsers =
       memberUserIds.length > 0
         ? await User.find({
-            id: { $in: memberUserIds },
+            id: {
+              $in: memberUserIds,
+            },
           })
             .select("-passwordHash")
             .lean()
@@ -131,7 +158,8 @@ exports.members = async (req, res, next) => {
     // ------------------------------------------
     const result = [];
 
-    if (owner) {
+    // Add workspace admins
+    for (const owner of owners) {
       result.push({
         ...owner,
         teamRole: "admin",
@@ -140,12 +168,20 @@ exports.members = async (req, res, next) => {
       });
     }
 
+    // Add workspace members
     for (const membership of memberships) {
       const user = memberUsers.find(
         (item) => item.id === membership.userId
       );
 
       if (!user) continue;
+
+      // Don't add admin twice
+      const isOwner = owners.some(
+        (owner) => owner.id === user.id
+      );
+
+      if (isOwner) continue;
 
       result.push({
         ...user,
@@ -161,7 +197,6 @@ exports.members = async (req, res, next) => {
   }
 };
 
-
 // ==========================================
 // GIVE ACCESS TO EXISTING USER
 // ==========================================
@@ -169,6 +204,9 @@ exports.giveAccess = async (req, res, next) => {
   try {
     const { email } = req.body;
 
+    // ------------------------------------------
+    // Validate email
+    // ------------------------------------------
     if (!email || !email.trim()) {
       return res.status(400).json({
         message: "User email is required.",
@@ -180,7 +218,7 @@ exports.giveAccess = async (req, res, next) => {
       .toLowerCase();
 
     // ------------------------------------------
-    // User MUST already have an account
+    // User must already have an account
     // ------------------------------------------
     const user = await User.findOne({
       email: normalizedEmail,
@@ -229,18 +267,24 @@ exports.giveAccess = async (req, res, next) => {
         role: "member",
       });
 
+    // ------------------------------------------
+    // Remove password from response
+    // ------------------------------------------
     const safeUser = user.toObject();
 
     delete safeUser.passwordHash;
 
     return res.status(201).json({
       success: true,
-      message: "Workspace access granted successfully.",
+      message:
+        "Workspace access granted successfully.",
       user: safeUser,
       membership,
     });
   } catch (error) {
+    // ------------------------------------------
     // Duplicate protection
+    // ------------------------------------------
     if (error.code === 11000) {
       return res.status(400).json({
         message:
@@ -251,7 +295,6 @@ exports.giveAccess = async (req, res, next) => {
     next(error);
   }
 };
-
 
 // ==========================================
 // REVOKE WORKSPACE ACCESS
@@ -270,6 +313,9 @@ exports.revokeAccess = async (req, res, next) => {
       });
     }
 
+    // ------------------------------------------
+    // Remove membership
+    // ------------------------------------------
     const membership =
       await WorkspaceMember.findOneAndDelete({
         workspaceId: req.workspaceId,
