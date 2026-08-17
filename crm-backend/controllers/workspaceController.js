@@ -4,13 +4,46 @@ const {
   WorkspaceMember,
 } = require("../models");
 
-// ==========================================
+
+// =====================================================
 // GET WORKSPACE
-// ==========================================
+// =====================================================
 exports.get = async (req, res, next) => {
   try {
+    const workspaceId = req.workspaceId;
+
+    if (!workspaceId) {
+      return res.status(404).json({
+        message: "No workspace selected.",
+      });
+    }
+
     const workspace = await Workspace.findOne({
-      id: req.workspaceId,
+      id: workspaceId,
+    }).lean();
+
+    if (!workspace) {
+      return res.status(404).json({
+        message: "Workspace not found.",
+      });
+    }
+
+    return res.json(workspace);
+  } catch (error) {
+    next(error);
+  }
+};
+
+
+// =====================================================
+// UPDATE WORKSPACE
+// =====================================================
+exports.update = async (req, res, next) => {
+  try {
+    const workspaceId = req.workspaceId;
+
+    const workspace = await Workspace.findOne({
+      id: workspaceId,
     });
 
     if (!workspace) {
@@ -19,24 +52,13 @@ exports.get = async (req, res, next) => {
       });
     }
 
-    res.json(workspace);
-  } catch (error) {
-    next(error);
-  }
-};
-
-// ==========================================
-// UPDATE WORKSPACE
-// ==========================================
-exports.update = async (req, res, next) => {
-  try {
-    const workspace = await Workspace.findOne({
-      id: req.workspaceId,
-    });
-
-    if (!workspace) {
-      return res.status(404).json({
-        message: "Workspace not found.",
+    // ------------------------------------------
+    // Only workspace owner/admin can update
+    // ------------------------------------------
+    if (workspace.ownerId !== req.user.id) {
+      return res.status(403).json({
+        message:
+          "Only the workspace admin can update this workspace.",
       });
     }
 
@@ -78,70 +100,94 @@ exports.update = async (req, res, next) => {
 
     await workspace.save();
 
-    res.json(workspace);
+    return res.json(workspace);
   } catch (error) {
     next(error);
   }
 };
 
-// ==========================================
-// GET WORKSPACE MEMBERS
-// ==========================================
+
+// =====================================================
+// GET CURRENT WORKSPACE TEAM MEMBERS
+// =====================================================
 exports.members = async (req, res, next) => {
   try {
-    const userId = req.user.id;
+    const workspaceId = req.workspaceId;
 
-    // ------------------------------------------
-    // Find workspaces where current user
-    // is a member
-    // ------------------------------------------
-    const myMemberships = await WorkspaceMember.find({
-      userId,
-    })
-      .sort({ createdAt: 1 })
-      .lean();
-
-    // ------------------------------------------
-    // If user is not a member of any workspace
-    // ------------------------------------------
-    if (myMemberships.length === 0) {
-      return res.json([]);
+    if (!workspaceId) {
+      return res.status(404).json({
+        message: "No workspace selected.",
+      });
     }
 
-    const workspaceIds = myMemberships.map(
-      (membership) => membership.workspaceId
-    );
+    // ------------------------------------------
+    // Get active workspace
+    // ------------------------------------------
+    const workspace = await Workspace.findOne({
+      id: workspaceId,
+    }).lean();
+
+    if (!workspace) {
+      return res.status(404).json({
+        message: "Workspace not found.",
+      });
+    }
 
     // ------------------------------------------
-    // Get admins / owners
+    // Get actual workspace owner/admin
+    // IMPORTANT:
+    // ownerId is the source of truth
     // ------------------------------------------
-    const owners = await User.find({
-      workspaceId: {
-        $in: workspaceIds,
-      },
-      role: "admin",
+    const owner = await User.findOne({
+      id: workspace.ownerId,
     })
       .select("-passwordHash")
       .lean();
 
+    const result = [];
+
     // ------------------------------------------
-    // Get all memberships
+    // Add workspace admin FIRST
     // ------------------------------------------
-    const memberships = await WorkspaceMember.find({
-      workspaceId: {
-        $in: workspaceIds,
-      },
-    })
-      .sort({ createdAt: 1 })
-      .lean();
+    if (owner) {
+      result.push({
+        ...owner,
+
+        teamRole: "admin",
+
+        membershipId: null,
+
+        accessType: "owner",
+
+        workspaceId: workspace.id,
+
+        workspaceName:
+          workspace.companyName,
+      });
+    }
+
+    // ------------------------------------------
+    // Get all members of CURRENT workspace
+    // ------------------------------------------
+    const memberships =
+      await WorkspaceMember.find({
+        workspaceId,
+      })
+        .sort({ createdAt: 1 })
+        .lean();
+
+    // ------------------------------------------
+    // Get member user IDs
+    // ------------------------------------------
+    const memberUserIds =
+      memberships.map(
+        (membership) =>
+          membership.userId
+      );
 
     // ------------------------------------------
     // Get users
     // ------------------------------------------
-    const memberUserIds = memberships.map(
-      (membership) => membership.userId
-    );
-
     const memberUsers =
       memberUserIds.length > 0
         ? await User.find({
@@ -154,40 +200,46 @@ exports.members = async (req, res, next) => {
         : [];
 
     // ------------------------------------------
-    // Combine owner + members
+    // Add team members
     // ------------------------------------------
-    const result = [];
-
-    // Add workspace admins
-    for (const owner of owners) {
-      result.push({
-        ...owner,
-        teamRole: "admin",
-        membershipId: null,
-        accessType: "owner",
-      });
-    }
-
-    // Add workspace members
     for (const membership of memberships) {
       const user = memberUsers.find(
-        (item) => item.id === membership.userId
+        (item) =>
+          item.id ===
+          membership.userId
       );
 
-      if (!user) continue;
+      if (!user) {
+        continue;
+      }
 
-      // Don't add admin twice
-      const isOwner = owners.some(
-        (owner) => owner.id === user.id
-      );
-
-      if (isOwner) continue;
+      // ------------------------------------------
+      // Don't show owner twice
+      // ------------------------------------------
+      if (
+        workspace.ownerId ===
+        user.id
+      ) {
+        continue;
+      }
 
       result.push({
         ...user,
-        teamRole: membership.role,
-        membershipId: membership.id,
+
+        teamRole:
+          membership.role ||
+          "member",
+
+        membershipId:
+          membership.id,
+
         accessType: "member",
+
+        workspaceId:
+          workspace.id,
+
+        workspaceName:
+          workspace.companyName,
       });
     }
 
@@ -197,32 +249,87 @@ exports.members = async (req, res, next) => {
   }
 };
 
-// ==========================================
+
+// =====================================================
 // GIVE ACCESS TO EXISTING USER
-// ==========================================
-exports.giveAccess = async (req, res, next) => {
+// =====================================================
+exports.giveAccess = async (
+  req,
+  res,
+  next
+) => {
   try {
     const { email } = req.body;
+
+    const workspaceId =
+      req.workspaceId;
 
     // ------------------------------------------
     // Validate email
     // ------------------------------------------
-    if (!email || !email.trim()) {
+    if (
+      !email ||
+      !email.trim()
+    ) {
       return res.status(400).json({
-        message: "User email is required.",
+        message:
+          "User email is required.",
       });
     }
 
-    const normalizedEmail = email
-      .trim()
-      .toLowerCase();
+    // ------------------------------------------
+    // Workspace required
+    // ------------------------------------------
+    if (!workspaceId) {
+      return res.status(400).json({
+        message:
+          "No workspace selected.",
+      });
+    }
 
     // ------------------------------------------
-    // User must already have an account
+    // Get workspace
     // ------------------------------------------
-    const user = await User.findOne({
-      email: normalizedEmail,
-    });
+    const workspace =
+      await Workspace.findOne({
+        id: workspaceId,
+      });
+
+    if (!workspace) {
+      return res.status(404).json({
+        message:
+          "Workspace not found.",
+      });
+    }
+
+    // ------------------------------------------
+    // ONLY workspace owner can add members
+    // ------------------------------------------
+    if (
+      workspace.ownerId !==
+      req.user.id
+    ) {
+      return res.status(403).json({
+        message:
+          "Only the workspace admin can add team members.",
+      });
+    }
+
+    // ------------------------------------------
+    // Normalize email
+    // ------------------------------------------
+    const normalizedEmail =
+      email
+        .trim()
+        .toLowerCase();
+
+    // ------------------------------------------
+    // User must already have account
+    // ------------------------------------------
+    const user =
+      await User.findOne({
+        email: normalizedEmail,
+      });
 
     if (!user) {
       return res.status(404).json({
@@ -234,7 +341,10 @@ exports.giveAccess = async (req, res, next) => {
     // ------------------------------------------
     // Admin cannot add himself
     // ------------------------------------------
-    if (user.id === req.user.id) {
+    if (
+      user.id ===
+      req.user.id
+    ) {
       return res.status(400).json({
         message:
           "You are already the admin of this workspace.",
@@ -242,11 +352,11 @@ exports.giveAccess = async (req, res, next) => {
     }
 
     // ------------------------------------------
-    // Check duplicate membership
+    // Check existing membership
     // ------------------------------------------
     const existingMembership =
       await WorkspaceMember.findOne({
-        workspaceId: req.workspaceId,
+        workspaceId,
         userId: user.id,
       });
 
@@ -258,34 +368,57 @@ exports.giveAccess = async (req, res, next) => {
     }
 
     // ------------------------------------------
-    // Create workspace membership
+    // Create membership
     // ------------------------------------------
     const membership =
       await WorkspaceMember.create({
-        workspaceId: req.workspaceId,
+        workspaceId,
+
         userId: user.id,
+
         role: "member",
       });
 
     // ------------------------------------------
-    // Remove password from response
+    // IMPORTANT:
+    // Do NOT overwrite user's workspaceId
+    //
+    // A member can belong to multiple teams.
+    // WorkspaceMember is the source of truth.
     // ------------------------------------------
-    const safeUser = user.toObject();
+
+    const safeUser =
+      user.toObject();
 
     delete safeUser.passwordHash;
 
     return res.status(201).json({
       success: true,
+
       message:
         "Workspace access granted successfully.",
+
       user: safeUser,
+
       membership,
+
+      workspace: {
+        id: workspace.id,
+
+        companyName:
+          workspace.companyName,
+
+        ownerId:
+          workspace.ownerId,
+      },
     });
   } catch (error) {
     // ------------------------------------------
-    // Duplicate protection
+    // Duplicate membership protection
     // ------------------------------------------
-    if (error.code === 11000) {
+    if (
+      error.code === 11000
+    ) {
       return res.status(400).json({
         message:
           "This user already has access to your workspace.",
@@ -296,17 +429,67 @@ exports.giveAccess = async (req, res, next) => {
   }
 };
 
-// ==========================================
+
+// =====================================================
 // REVOKE WORKSPACE ACCESS
-// ==========================================
-exports.revokeAccess = async (req, res, next) => {
+// =====================================================
+exports.revokeAccess = async (
+  req,
+  res,
+  next
+) => {
   try {
-    const { userId } = req.params;
+    const { userId } =
+      req.params;
+
+    const workspaceId =
+      req.workspaceId;
+
+    // ------------------------------------------
+    // Workspace required
+    // ------------------------------------------
+    if (!workspaceId) {
+      return res.status(400).json({
+        message:
+          "No workspace selected.",
+      });
+    }
+
+    // ------------------------------------------
+    // Get workspace
+    // ------------------------------------------
+    const workspace =
+      await Workspace.findOne({
+        id: workspaceId,
+      });
+
+    if (!workspace) {
+      return res.status(404).json({
+        message:
+          "Workspace not found.",
+      });
+    }
+
+    // ------------------------------------------
+    // ONLY owner/admin can revoke
+    // ------------------------------------------
+    if (
+      workspace.ownerId !==
+      req.user.id
+    ) {
+      return res.status(403).json({
+        message:
+          "Only the workspace admin can remove team members.",
+      });
+    }
 
     // ------------------------------------------
     // Don't allow admin to remove himself
     // ------------------------------------------
-    if (userId === req.user.id) {
+    if (
+      userId ===
+      req.user.id
+    ) {
       return res.status(400).json({
         message:
           "You cannot revoke your own workspace access.",
@@ -317,10 +500,12 @@ exports.revokeAccess = async (req, res, next) => {
     // Remove membership
     // ------------------------------------------
     const membership =
-      await WorkspaceMember.findOneAndDelete({
-        workspaceId: req.workspaceId,
-        userId,
-      });
+      await WorkspaceMember.findOneAndDelete(
+        {
+          workspaceId,
+          userId,
+        }
+      );
 
     if (!membership) {
       return res.status(404).json({
@@ -331,6 +516,7 @@ exports.revokeAccess = async (req, res, next) => {
 
     return res.json({
       success: true,
+
       message:
         "Workspace access revoked successfully.",
     });
