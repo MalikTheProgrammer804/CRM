@@ -14,6 +14,12 @@ const workspaceSchema = new mongoose.Schema(
       required: true,
     },
 
+    ownerId: {
+      type: String,
+      required: true,
+      index: true,
+    },
+
     timeZone: {
       type: String,
       default: "UTC",
@@ -30,4 +36,7 @@ const workspaceSchema = new mongoose.Schema(
   }
 );
 
-module.exports = mongoose.model("Workspace", workspaceSchema);
+module.exports = mongoose.model(
+  "Workspace",
+  workspaceSchema
+);
