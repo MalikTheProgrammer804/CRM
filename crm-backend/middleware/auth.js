@@ -1,17 +1,22 @@
 const { verifyToken } = require("../utils/token");
+
 const {
   User,
+  Workspace,
   WorkspaceMember,
 } = require("../models");
 
 
-/**
- * AUTHENTICATION
- */
+// =====================================================
+// AUTHENTICATION
+// =====================================================
 async function protect(req, res, next) {
   const authHeader =
     req.headers.authorization;
 
+  // ------------------------------------------
+  // Token required
+  // ------------------------------------------
   if (
     !authHeader ||
     !authHeader.startsWith("Bearer ")
@@ -23,12 +28,18 @@ async function protect(req, res, next) {
   }
 
   try {
+    // ------------------------------------------
+    // Get token
+    // ------------------------------------------
     const token =
       authHeader.split(" ")[1];
 
     const decoded =
       verifyToken(token);
 
+    // ------------------------------------------
+    // Get current user
+    // ------------------------------------------
     const user =
       await User.findOne({
         id: decoded.userId,
@@ -43,26 +54,36 @@ async function protect(req, res, next) {
 
     req.user = user;
 
-    // ------------------------------------------
-    // Workspace from token / user's own workspace
-    // ------------------------------------------
+    // =================================================
+    // DETERMINE ACTIVE WORKSPACE
+    // =================================================
+
     let workspaceId =
       decoded.workspaceId ||
-      user.workspaceId ||
       null;
 
+    // ------------------------------------------
+    // If token has no workspace,
+    // use user's own workspace
+    // ------------------------------------------
+    if (!workspaceId && user.workspaceId) {
+      workspaceId =
+        user.workspaceId;
+    }
 
     // ------------------------------------------
-    // If user doesn't own a workspace,
-    // check WorkspaceMember collection
+    // If still no workspace,
+    // find membership
     // ------------------------------------------
     if (!workspaceId) {
       const membership =
         await WorkspaceMember.findOne({
           userId: user.id,
-        }).sort({
-          createdAt: 1,
-        });
+        })
+          .sort({
+            createdAt: 1,
+          })
+          .lean();
 
       if (membership) {
         workspaceId =
@@ -70,18 +91,85 @@ async function protect(req, res, next) {
       }
     }
 
+    // ------------------------------------------
+    // Verify workspace actually exists
+    // ------------------------------------------
+    let workspace = null;
+
+    if (workspaceId) {
+      workspace =
+        await Workspace.findOne({
+          id: workspaceId,
+        }).lean();
+    }
+
+    // ------------------------------------------
+    // Workspace doesn't exist
+    // ------------------------------------------
+    if (!workspace) {
+      return res.status(403).json({
+        message:
+          "No valid workspace is assigned to this account.",
+      });
+    }
+
+    // =================================================
+    // VERIFY USER HAS ACCESS TO ACTIVE WORKSPACE
+    // =================================================
+
+    const isOwner =
+      workspace.ownerId ===
+      user.id;
+
+    let membership = null;
+
+    if (!isOwner) {
+      membership =
+        await WorkspaceMember.findOne({
+          workspaceId:
+            workspace.id,
+
+          userId:
+            user.id,
+        }).lean();
+
+      // ------------------------------------------
+      // User is neither owner nor member
+      // ------------------------------------------
+      if (!membership) {
+        return res.status(403).json({
+          message:
+            "You do not have access to this workspace.",
+        });
+      }
+    }
+
+    // =================================================
+    // SET REQUEST WORKSPACE DATA
+    // =================================================
 
     req.workspaceId =
-      workspaceId;
+      workspace.id;
 
-    req.role =
-      decoded.role ||
-      user.role;
+    req.workspace =
+      workspace;
 
+    // ------------------------------------------
+    // Actual role inside ACTIVE workspace
+    // ------------------------------------------
+    req.role = isOwner
+      ? "admin"
+      : membership?.role || "member";
+
+    req.workspaceRole =
+      req.role;
+
+    // ------------------------------------------
+    // Continue
+    // ------------------------------------------
     next();
 
   } catch (err) {
-
     console.error(
       "Authentication error:",
       err.message
@@ -95,33 +183,71 @@ async function protect(req, res, next) {
 }
 
 
-/**
- * ADMIN ONLY
- */
-function requireAdmin(
+// =====================================================
+// ADMIN ONLY
+// =====================================================
+async function requireAdmin(
   req,
   res,
   next
 ) {
-  if (!req.user) {
-    return res.status(401).json({
-      message: "Not authorized.",
-    });
-  }
+  try {
+    if (!req.user) {
+      return res.status(401).json({
+        message:
+          "Not authorized.",
+      });
+    }
 
-  if (
-    req.user.role !== "admin"
-  ) {
+    if (!req.workspace) {
+      return res.status(403).json({
+        message:
+          "No active workspace selected.",
+      });
+    }
+
+    // ------------------------------------------
+    // IMPORTANT:
+    // Admin means OWNER OF THIS WORKSPACE
+    // ------------------------------------------
+    if (
+      req.workspace.ownerId !==
+      req.user.id
+    ) {
+      return res.status(403).json({
+        message:
+          "Only the workspace admin can perform this action.",
+      });
+    }
+
+    // ------------------------------------------
+    // Set role
+    // ------------------------------------------
+    req.role = "admin";
+
+    req.workspaceRole =
+      "admin";
+
+    next();
+
+  } catch (error) {
+    console.error(
+      "Admin authorization error:",
+      error.message
+    );
+
     return res.status(403).json({
       message:
-        "Only workspace admin can perform this action.",
+        "Admin authorization failed.",
     });
   }
-
-  next();
 }
 
 
+// =====================================================
+// EXPORT
+// =====================================================
 module.exports = protect;
+
 module.exports.requireAdmin =
   requireAdmin;
