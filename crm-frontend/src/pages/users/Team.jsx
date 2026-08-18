@@ -262,7 +262,7 @@ export default function Team() {
                 px-3
                 pl-10
                 text-sm
-                text-[white] 
+                text-[red] 
                 placeholder-slate-400
                 outline-none
                 shadow-none
@@ -297,7 +297,7 @@ export default function Team() {
               px-5
               text-sm
               font-bold
-              text-white
+              text-black
               shadow-sm
               transition
               hover:bg-[#0a756f]
