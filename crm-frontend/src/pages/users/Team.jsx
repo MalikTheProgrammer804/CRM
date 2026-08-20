@@ -7,9 +7,13 @@ import {
   X,
   UserRound,
   Users,
+  MessageCircle,
 } from "lucide-react";
 
 import { workspaceService } from "../../services/workspaceService";
+import chatService from "../../services/chatService";
+import authService from "../../services/authService";
+import ChatWindow from "../../components/chat/ChatWindow";
 
 export default function Team() {
   const [members, setMembers] = useState([]);
@@ -25,6 +29,10 @@ export default function Team() {
   const [email, setEmail] = useState("");
   const [adding, setAdding] = useState(false);
   const [removingId, setRemovingId] = useState(null);
+
+  const [meId, setMeId] = useState(null);
+  const [chatMember, setChatMember] = useState(null);
+  const [unreadByUser, setUnreadByUser] = useState({});
 
   // ==========================================
   // LOAD MEMBERS
@@ -51,7 +59,25 @@ export default function Team() {
 
   useEffect(() => {
     loadMembers();
+
+    authService.me().then((u) => setMeId(u.id)).catch(() => {});
+
+    chatService
+      .conversations()
+      .then((conversations) => {
+        const map = {};
+        conversations.forEach((c) => {
+          map[c.otherUserId] = c.unreadCount;
+        });
+        setUnreadByUser(map);
+      })
+      .catch(() => {});
   }, []);
+
+  const openChat = (member) => {
+    setChatMember(member);
+    setUnreadByUser((prev) => ({ ...prev, [member.id]: 0 }));
+  };
 
   // ==========================================
   // FILTER MEMBERS
@@ -581,7 +607,26 @@ export default function Team() {
                       </td>
 
                       {/* ACTION */}
-                      <td className="px-3 py-4 text-center">
+                      <td className="px-3 py-4">
+
+                        <div className="flex items-center justify-center gap-1.5">
+
+                          {/* CHAT */}
+                          {member.id !== meId && (
+                            <button
+                              type="button"
+                              onClick={() => openChat(member)}
+                              className="relative rounded-lg p-2 text-slate-400 transition hover:bg-[#0e8e86]/10 hover:text-[#0e8e86]"
+                              title={`Chat with ${member.fullName || "this user"}`}
+                            >
+                              <MessageCircle size={17} />
+                              {!!unreadByUser[member.id] && (
+                                <span className="absolute -right-0.5 -top-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[9px] font-bold text-white">
+                                  {unreadByUser[member.id] > 9 ? "9+" : unreadByUser[member.id]}
+                                </span>
+                              )}
+                            </button>
+                          )}
 
                         {!isAdmin && (
                           <div className="group relative inline-block">
@@ -634,6 +679,7 @@ export default function Team() {
                           </div>
                         )}
 
+                        </div>
                       </td>
                     </tr>
                   );
@@ -825,6 +871,10 @@ export default function Team() {
             </form>
           </div>
         </div>
+      )}
+
+      {chatMember && (
+        <ChatWindow member={chatMember} onClose={() => setChatMember(null)} />
       )}
     </div>
   );
