@@ -7,6 +7,7 @@ const authRoutes = require("./routes/authRoutes");
 const leadDiscoveryRoutes = require("./routes/Leaddiscoveryroutes");
 const leadRoutes = require("./routes/leadroute");
 const workspaceRoutes = require("./routes/workspaceRoutes");
+const chatRoutes = require("./routes/chatRoutes");
 const errorHandler = require("./middleware/errorHandler");
 
 const app = express();
@@ -51,6 +52,7 @@ app.use("/api/lead-discovery", leadDiscoveryRoutes);
 app.use("/api/leads", leadRoutes);
 app.use("/api/tasks", taskRoutes);
 app.use("/api/workspace", workspaceRoutes);
+app.use("/api/chat", chatRoutes);
 
 app.use(errorHandler);
 
