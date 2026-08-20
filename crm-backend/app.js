@@ -7,7 +7,7 @@ const authRoutes = require("./routes/authRoutes");
 const leadDiscoveryRoutes = require("./routes/Leaddiscoveryroutes");
 const leadRoutes = require("./routes/leadroute");
 const workspaceRoutes = require("./routes/workspaceRoutes");
-const chatRoutes = require("./routes/chatRoutes");
+const chatRoutes = require("./routes/Chatroutes");
 const errorHandler = require("./middleware/errorHandler");
 
 const app = express();
