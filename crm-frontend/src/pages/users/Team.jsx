@@ -13,7 +13,7 @@ import {
 import { workspaceService } from "../../services/workspaceService";
 import chatService from "../../services/Chatservice";
 import authService from "../../services/authService";
-import ChatWindow from "../../components/chat/Chatwindow";
+import ChatWindow from "../../components/Chatwindow";
 
 export default function Team() {
   const [members, setMembers] = useState([]);
