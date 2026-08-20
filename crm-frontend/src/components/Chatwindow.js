@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { X, Send, Trash2 } from "lucide-react";
 import { useTheme } from "../../context/ThemeContext";
-import chatService from "../../services/chatService";
+import chatService from "../../services/Chatservice";
 import authService from "../../services/authService";
 
 const POLL_INTERVAL_MS = 4000;
